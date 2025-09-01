@@ -1,14 +1,22 @@
 """
+==============================================================================
 AuthFlow Supabase - Configuration Management Module
-
+==============================================================================
 This module centralizes all configuration settings for the AuthFlow service,
 including API, database, Redis, Supabase, and security configurations.
 
 Environment variables are loaded with sensible defaults for development.
 Production deployments should override these with proper environment variables.
 
+Key Features:
+- Environment-based configuration
+- Centralized settings management
+- Security-focused defaults
+- Production-ready structure
+
 Author: AuthFlow Team
 Version: 0.1.0
+==============================================================================
 """
 
 import os
@@ -16,6 +24,9 @@ import os
 import dotenv
 from config.load_environment import setup_environment
 
+# =============================================================================
+# Environment Setup
+# =============================================================================
 # Set environment and load configuration
 env = "development"  # Default to development environment
 setup_environment(env)  # Load environment-specific settings
@@ -23,14 +34,16 @@ setup_environment(env)  # Load environment-specific settings
 # =============================================================================
 # API Configuration
 # =============================================================================
+# API routing and versioning settings
 api_config = {
-    "prefix": os.getenv("API_PREFIX") or "/api/v1",  # API version prefix
-    "verify_url": os.getenv("VERIFY_URL") or "/verify-service/session",  # Verify URL
+    "prefix": os.getenv("API_PREFIX") or "/api/v1",  # API version prefix for routing
+    "verify_url": os.getenv("VERIFY_URL") or "/verify-service/session",  # Session verification URL
 }
 
 # =============================================================================
 # Database Configuration
 # =============================================================================
+# PostgreSQL database connection settings
 db_config = {
     "url": os.getenv("DATABASE_URL")  # PostgreSQL connection string
 }
@@ -38,17 +51,19 @@ db_config = {
 # =============================================================================
 # Redis Configuration
 # =============================================================================
+# Redis cache and session storage settings
 redis_config = {
-    "host": os.getenv("REDIS_HOST"),  # Redis server hostname/IP
-    "port": int(os.getenv("REDIS_PORT") or 6379),  # Redis server port
+    "host": os.getenv("REDIS_HOST"),  # Redis server hostname/IP address
+    "port": int(os.getenv("REDIS_PORT") or 6379),  # Redis server port number
     "password": os.getenv("REDIS_PASSWORD"),  # Redis authentication password
-    "db": int(os.getenv("REDIS_DB") or 0),  # Redis database number
-    "ttl": int(os.getenv("REDIS_TTL") or 3600),  # Session TTL in seconds (1 hour)
+    "db": int(os.getenv("REDIS_DB") or 0),  # Redis database number (0-15)
+    "ttl": int(os.getenv("REDIS_TTL") or 3600),  # Session TTL in seconds (1 hour default)
 }
 
 # =============================================================================
 # Security & Secrets Configuration
 # =============================================================================
+# Cryptographic keys and security settings
 secrets_config = {
     "session_secret_key": os.getenv("SESSION_SECRET_KEY")  # Secret key for session encryption
 }
@@ -56,12 +71,13 @@ secrets_config = {
 # =============================================================================
 # Server Configuration
 # =============================================================================
+# FastAPI server and application settings
 server_config = {
-    "host": "0.0.0.0",  # Bind to all network interfaces
+    "host": "0.0.0.0",  # Bind to all network interfaces (accessible from any IP)
     "port": 8001,  # Server port number
-    "summary": "Auth Service for Eorix",  # Service summary for API docs
+    "summary": "Auth Service for Eorix",  # Service summary for API documentation
     "description": "Auth Service for Eorix",  # Service description
-    "version": "0.1.0",  # Service version
+    "version": "0.1.0",  # Service version number
     "docs_url": "/docs",  # Swagger UI documentation endpoint
     "redoc_url": "/redoc",  # ReDoc documentation endpoint
     "openapi_url": "/openapi.json",  # OpenAPI specification endpoint
@@ -69,16 +85,17 @@ server_config = {
     "contact": {
         "name": "Eorix",  # Organization name
         "url": "https://eorix.io",  # Organization website
-        "email": "contact@eorix.io",  # Contact email
+        "email": "contact@eorix.io",  # Contact email address
     },
 }
 
 # =============================================================================
 # Supabase Configuration
 # =============================================================================
+# Supabase authentication and database settings
 supabase_config = {
     "url": os.getenv("SUPABASE_URL"),  # Supabase project URL
-    "key": os.getenv("SUPABASE_KEY"),  # Supabase API key
+    "key": os.getenv("SUPABASE_KEY"),  # Supabase API key (anon/public key)
     "reset_password_redirect_to": os.getenv("RESET_PASSWORD_REDIRECT_TO"),  # Password reset redirect URL
     "email_verification_redirect_to": os.getenv("EMAIL_VERIFICATION_REDIRECT_TO"),  # Email verification redirect URL
 }
@@ -86,6 +103,7 @@ supabase_config = {
 # =============================================================================
 # URL Routing & Proxy Configuration
 # =============================================================================
+# Service-to-service communication settings
 allowed_urls = {
     "session_service": ["http://session-service:8000/verify/"],  # Session service verification endpoint
     "allowed_proxy": ["http://session-service:8000"],  # Allowed proxy services
@@ -98,6 +116,7 @@ forward_urls = {
 # =============================================================================
 # Security & Access Control
 # =============================================================================
+# Public endpoints that don't require authentication
 unsecure_urls = [
     "/docs",  # API documentation (public access)
     "/redoc",  # Alternative API docs (public access)
@@ -110,11 +129,13 @@ unsecure_urls = [
 # =============================================================================
 # Template & UI Configuration
 # =============================================================================
+# HTML template and UI settings
 template_path = "templates"  # Path to HTML template files
 
 # =============================================================================
 # Cookie Configuration
 # =============================================================================
+# Session cookie security and behavior settings
 cookie_config = {
     "cookie_name": os.getenv("COOKIE_NAME") or "session_id",  # Session cookie name
     "cookie_domain": os.getenv("COOKIE_DOMAIN") or "localhost",  # Cookie domain
@@ -128,6 +149,7 @@ cookie_config = {
 # =============================================================================
 # Logging Configuration
 # =============================================================================
+# Application logging and monitoring settings
 log_settings = {
     "log_level": os.getenv("LOG_LEVEL") or "INFO",  # Logging level (DEBUG, INFO, WARNING, ERROR)
     "log_file": os.getenv("LOG_FILE") or "auth-service.log",  # Log file path
@@ -136,6 +158,7 @@ log_settings = {
 # =============================================================================
 # Testing Configuration
 # =============================================================================
+# Test database and testing environment settings
 test_db_config = {
     "url": "sqlite:///./test.db"  # SQLite database for testing (in-memory option available)
 }
@@ -143,6 +166,7 @@ test_db_config = {
 # =============================================================================
 # Service Startup Message
 # =============================================================================
+# Display welcome message on service startup
 print("--------------------------------")
 print(
     "Welcome to AuthFlow Service, A secure and fast auth service for you made by developer for developers"

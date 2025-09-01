@@ -1,18 +1,38 @@
+# =============================================================================
+# AuthFlow Supabase - Docker Compose Configuration
+# =============================================================================
+# This file defines the complete microservices architecture for AuthFlow
+# It orchestrates multiple services including auth, session, Redis, and nginx proxy
+#
+# Services:
+# - session-service: Session management microservice
+# - auth-service: Authentication microservice  
+# - redis: Cache and session storage
+# - proxy: Nginx reverse proxy for routing and security
+#
+# Author: AuthFlow Team
+# Version: 0.1.0
+# =============================================================================
+
 version: '3.8'
 
 services:
+  # =============================================================================
+  # Session Service
+  # =============================================================================
+  # Handles user session management, device tracking, and session validation
   session-service:
     image: session-service
     build:
       context: ./session-service
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8000:8000"  # Expose session service on port 8000
     volumes:
-      - ./session-service:/app
+      - ./session-service:/app  # Mount source code for development
     working_dir: /app
     env_file:
-      - .env.development  #for development only contains the environment variables for the session service
+      - .env.development  # Load environment variables for development
     command: >
       sh -c "watchmedo auto-restart --patterns='*.py' --recursive --
              -- sh -c 'flake8 . && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000'"
@@ -20,20 +40,24 @@ services:
     environment:
       - PYTHONPATH=/app
     depends_on:
-      - auth-service
+      - auth-service  # Session service depends on auth service
 
+  # =============================================================================
+  # Auth Service
+  # =============================================================================
+  # Main authentication service with Supabase integration
   auth-service:
     image: auth-service
     build:
       context: ./auth-service
       dockerfile: Dockerfile
     ports:
-      - "8001:8001"
+      - "8001:8001"  # Expose auth service on port 8001
     volumes:
-      - ./auth-service:/app 
+      - ./auth-service:/app  # Mount source code for development
     working_dir: /app
     env_file:
-      - .env.development  #for development only contains the environment variables for the auth service
+      - .env.development  # Load environment variables for development
     command: >
       sh -c "watchmedo auto-restart --patterns='*.py' --recursive --
              -- sh -c 'flake8 . && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000'"
@@ -41,31 +65,38 @@ services:
     environment:
       - PYTHONPATH=/app
 
-
+  # =============================================================================
+  # Redis Cache
+  # =============================================================================
+  # In-memory cache for session storage and temporary data
   redis:
     image: redis:latest
     ports:
-      - "6379:6379"
+      - "6379:6379"  # Expose Redis on standard port
     volumes:
-      - ./redis:/data
+      - ./redis:/data  # Persist Redis data
     restart: always
 
-
+  # =============================================================================
+  # Nginx Reverse Proxy
+  # =============================================================================
+  # Reverse proxy for routing, security, and load balancing
   proxy:
     image: nginx:latest
     ports:
-      - "80:80"
-      - "443:443"
-
+      - "80:80"    # HTTP port
+      - "443:443"  # HTTPS port (for production)
     volumes:
-      - ./proxy/nginx.conf:/etc/nginx/nginx.conf
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf  # Mount custom nginx config
     links:
-      - session-service
-      - auth-service
-      
+      - session-service  # Link to session service
+      - auth-service     # Link to auth service
     restart: always
 
-
+# =============================================================================
+# Network Configuration
+# =============================================================================
+# Default bridge network for service communication
 networks:
   default:
     driver: bridge
