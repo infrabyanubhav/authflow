@@ -76,7 +76,7 @@ app.add_middleware(SessionMiddleware, secret_key=secrets_config["session_secret_
 # This allows the frontend to communicate with the API from different origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000", "*"],  # Allow all origins in development
+    allow_origins=["http://session-service:8000", "*"],  # Allow all origins in development
     allow_credentials=True,  # Allow cookies and authentication headers
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],  # Allow all headers
