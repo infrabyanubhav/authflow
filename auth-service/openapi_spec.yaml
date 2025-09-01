@@ -1,0 +1,726 @@
+openapi: 3.0.3
+info:
+  title: AuthFlow Supabase API
+  description: |
+    A secure, scalable authentication microservice built with FastAPI and Supabase integration.
+    Provides comprehensive user authentication, session management, and device tracking capabilities.
+    
+    ## Key Features
+    - User registration and authentication
+    - Device fingerprinting and tracking
+    - Session management with Redis
+    - Secure password handling
+    - Comprehensive logging and monitoring
+    
+    ## Authentication
+    The API uses session-based authentication with device fingerprinting for enhanced security.
+    
+    ## Rate Limiting
+    - Authentication endpoints: 5 requests per minute per IP
+    - Password reset: 3 requests per hour per email
+    - General API: 100 requests per minute per IP
+  version: 1.0.0
+  contact:
+    name: Eorix Development Team
+    email: contact@eorix.io
+    url: https://eorix.io
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8001
+    description: Development server
+  - url: https://api.yourdomain.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User registration, login, and logout operations
+  - name: Password Management
+    description: Password reset and update operations
+  - name: Session Management
+    description: Session creation, validation, and deletion
+  - name: Health
+    description: Service health and status endpoints
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Check service health
+      description: Returns the current health status of the authentication service
+      operationId: getHealthStatus
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "ok"
+                message: "Auth service is running"
+                version: "1.0.0"
+                timestamp: "2024-01-15T10:30:00.000Z"
+        '500':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/simple_auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: Register new user
+      description: |
+        Register a new user account with email and password.
+        Creates user profile, device tracking, and initial session.
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+            example:
+              email: "john.doe@example.com"
+              password: "SecurePass123!"
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/simple_auth/signin:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: |
+        Authenticate existing user with email and password.
+        Creates new session and device tracking.
+      operationId: userLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+            example:
+              email: "john.doe@example.com"
+              password: "SecurePass123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/simple_auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: |
+        Terminate user session and clear authentication state.
+        Requires valid session ID in cookies.
+      operationId: userLogout
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '401':
+          description: Invalid or expired session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/simple_auth/forgot-password:
+    post:
+      tags:
+        - Password Management
+      summary: Request password reset
+      description: |
+        Send password reset email to user's registered email address.
+        Rate limited to prevent abuse.
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+            example:
+              email: "john.doe@example.com"
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitErrorResponse'
+
+  /api/v1/simple_auth/reset-password:
+    get:
+      tags:
+        - Password Management
+      summary: Get password reset form
+      description: Returns HTML form for password reset
+      operationId: getPasswordResetForm
+      responses:
+        '200':
+          description: Password reset form
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Form not found
+
+  /api/v1/simple_auth/update-password:
+    get:
+      tags:
+        - Password Management
+      summary: Update password with token
+      description: |
+        Update user password using reset token from email.
+        Token and new password provided as query parameters.
+      operationId: updatePasswordWithToken
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Password reset token from email
+          schema:
+            type: string
+        - name: password
+          in: query
+          required: true
+          description: New password
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '200':
+          description: Password updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request - missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/simple_auth/reset-password/update:
+    post:
+      tags:
+        - Password Management
+      summary: Update password with validation
+      description: |
+        Update user password with token validation and password requirements.
+        More secure than GET endpoint.
+      operationId: updatePasswordWithValidation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+            example:
+              password: "NewSecurePass456!"
+              token: "reset-token-from-email"
+      responses:
+        '200':
+          description: Password updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request - missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/session/create:
+    post:
+      tags:
+        - Session Management
+      summary: Create new session
+      description: |
+        Create a new user session with device fingerprinting.
+        Requires valid user ID.
+      operationId: createSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+            example:
+              user_id: "123"
+      responses:
+        '200':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/session/delete:
+    delete:
+      tags:
+        - Session Management
+      summary: Delete session
+      description: |
+        Delete user session using session ID from cookies.
+        Cleans up session data and invalidates authentication.
+      operationId: deleteSession
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Session deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Invalid or expired session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: session_id
+      description: Session ID cookie for authentication
+
+  schemas:
+    # Request Schemas
+    UserRegistrationRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "john.doe@example.com"
+        password:
+          type: string
+          minLength: 8
+          description: User's password (minimum 8 characters)
+          example: "SecurePass123!"
+      additionalProperties: false
+
+    UserLoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "john.doe@example.com"
+        password:
+          type: string
+          description: User's password
+          example: "SecurePass123!"
+      additionalProperties: false
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address for password reset
+          example: "john.doe@example.com"
+      additionalProperties: false
+
+    PasswordResetRequest:
+      type: object
+      required:
+        - password
+        - token
+      properties:
+        password:
+          type: string
+          minLength: 8
+          description: New password (minimum 8 characters)
+          example: "NewSecurePass456!"
+        token:
+          type: string
+          description: Password reset token from email
+          example: "reset-token-string"
+      additionalProperties: false
+
+    CreateSessionRequest:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: string
+          description: ID of the user for whom to create session
+          example: "123"
+      additionalProperties: false
+
+    # Response Schemas
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - message
+        - version
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [ok, error]
+          description: Service health status
+        message:
+          type: string
+          description: Human-readable health message
+        version:
+          type: string
+          description: API version
+        timestamp:
+          type: string
+          format: date-time
+          description: Current timestamp
+      additionalProperties: false
+
+    AuthSuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+        message:
+          type: string
+          description: Success message
+        data:
+          type: object
+          required:
+            - session
+            - device_id
+          properties:
+            session:
+              $ref: '#/components/schemas/SessionData'
+            device_id:
+              type: integer
+              description: Device identifier
+      additionalProperties: false
+
+    SessionResponse:
+      type: object
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+        message:
+          type: string
+          description: Success message
+        data:
+          $ref: '#/components/schemas/SessionData'
+      additionalProperties: false
+
+    SessionData:
+      type: object
+      required:
+        - session_id
+        - fingerprint
+        - user_id
+        - info
+      properties:
+        session_id:
+          type: string
+          format: uuid
+          description: Unique session identifier
+        fingerprint:
+          type: string
+          description: Device fingerprint hash
+        user_id:
+          type: integer
+          description: User identifier
+        info:
+          $ref: '#/components/schemas/DeviceInfo'
+      additionalProperties: false
+
+    DeviceInfo:
+      type: object
+      required:
+        - user_agent
+        - accept_language
+        - x_forwarded_for
+      properties:
+        user_agent:
+          type: string
+          description: Browser/device user agent string
+        accept_language:
+          type: string
+          description: Language preference header
+        x_forwarded_for:
+          type: string
+          description: Client IP address
+      additionalProperties: false
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+        message:
+          type: string
+          description: Success message
+      additionalProperties: false
+
+    LogoutResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Logout confirmation message
+      additionalProperties: false
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+          description: Operation success status
+        message:
+          type: string
+          description: Error message
+        error_code:
+          type: string
+          description: Machine-readable error code
+        details:
+          type: object
+          description: Additional error details
+      additionalProperties: false
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            required:
+              - loc
+              - msg
+              - type
+            properties:
+              loc:
+                type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - type: integer
+                description: Location of the error
+              msg:
+                type: string
+                description: Error message
+              type:
+                type: string
+                description: Error type
+      additionalProperties: false
+
+    RateLimitErrorResponse:
+      type: object
+      required:
+        - success
+        - message
+        - retry_after
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+          description: Operation success status
+        message:
+          type: string
+          description: Rate limit exceeded message
+        retry_after:
+          type: integer
+          description: Seconds to wait before retrying
+      additionalProperties: false
+
+  examples:
+    UserRegistrationExample:
+      summary: User registration
+      value:
+        email: "john.doe@example.com"
+        password: "SecurePass123!"
+
+    UserLoginExample:
+      summary: User login
+      value:
+        email: "john.doe@example.com"
+        password: "SecurePass123!"
+
+    AuthSuccessExample:
+      summary: Successful authentication
+      value:
+        success: true
+        message: "Sign in successful"
+        data:
+          session:
+            session_id: "550e8400-e29b-41d4-a716-446655440000"
+            fingerprint: "a1b2c3d4e5f6..."
+            user_id: 123
+            info:
+              user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+              accept_language: "en-US,en;q=0.9"
+              x_forwarded_for: "192.168.1.100"
+          device_id: 456
+
+    ErrorExample:
+      summary: Error response
+      value:
+        success: false
+        message: "Failed to sign in! Either email or password is incorrect."
+        error_code: "INVALID_CREDENTIALS"
+
+    ValidationErrorExample:
+      summary: Validation error
+      value:
+        detail:
+          - loc: ["body", "email"]
+            msg: "field required"
+            type: "value_error.missing"
+          - loc: ["body", "password"]
+            msg: "ensure this value has at least 8 characters"
+            type: "value_error.any_str.min_length"
+
+externalDocs:
+  description: Find more info about AuthFlow
+  url: https://github.com/your-username/authflow-supabase
+

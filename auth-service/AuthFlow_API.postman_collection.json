@@ -1,0 +1,334 @@
+{
+  "info": {
+    "name": "AuthFlow Supabase API",
+    "description": "Complete API collection for AuthFlow authentication service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8001",
+      "type": "string"
+    },
+    {
+      "key": "api_version",
+      "value": "v1",
+      "type": "string"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "Check if the authentication service is running"
+      },
+      "response": []
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "User Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/simple_auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "simple_auth", "signup"]
+            },
+            "description": "Register a new user account"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data && response.data.session) {",
+                  "        pm.collectionVariables.set('session_id', response.data.session.session_id);",
+                  "        console.log('Session ID saved:', response.data.session.session_id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/simple_auth/signin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "simple_auth", "signin"]
+            },
+            "description": "Authenticate existing user"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data && response.data.session) {",
+                  "        pm.collectionVariables.set('session_id', response.data.session.session_id);",
+                  "        console.log('Session ID saved:', response.data.session.session_id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "session_id={{session_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/simple_auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "simple_auth", "logout"]
+            },
+            "description": "Terminate user session"
+          },
+          "response": []
+        }
+      ],
+      "description": "User authentication operations"
+    },
+    {
+      "name": "Password Management",
+      "item": [
+        {
+          "name": "Request Password Reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/simple_auth/forgot-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "simple_auth", "forgot-password"]
+            },
+            "description": "Request password reset email"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Password Reset Form",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/simple_auth/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "simple_auth", "reset-password"]
+            },
+            "description": "Get HTML form for password reset"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Password with Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/simple_auth/update-password?token=YOUR_RESET_TOKEN&password=NewPassword123!",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "simple_auth", "update-password"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "YOUR_RESET_TOKEN",
+                  "description": "Password reset token from email"
+                },
+                {
+                  "key": "password",
+                  "value": "NewPassword123!",
+                  "description": "New password"
+                }
+              ]
+            },
+            "description": "Update password using reset token (GET method)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Password with Validation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NewPassword123!\",\n  \"token\": \"YOUR_RESET_TOKEN\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/simple_auth/reset-password/update",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "simple_auth", "reset-password", "update"]
+            },
+            "description": "Update password with token validation (POST method)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Password reset and update operations"
+    },
+    {
+      "name": "Session Management",
+      "item": [
+        {
+          "name": "Create Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/session/create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "session", "create"]
+            },
+            "description": "Create new user session"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Session",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "session_id={{session_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/session/delete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "session", "delete"]
+            },
+            "description": "Delete user session"
+          },
+          "response": []
+        }
+      ],
+      "description": "Session creation and management operations"
+    },
+    {
+      "name": "Documentation",
+      "item": [
+        {
+          "name": "Swagger UI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/docs",
+              "host": ["{{base_url}}"],
+              "path": ["docs"]
+            },
+            "description": "Interactive API documentation (Swagger UI)"
+          },
+          "response": []
+        },
+        {
+          "name": "ReDoc",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/redoc",
+              "host": ["{{base_url}}"],
+              "path": ["redoc"]
+            },
+            "description": "Alternative API documentation (ReDoc)"
+          },
+          "response": []
+        },
+        {
+          "name": "OpenAPI Schema",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/openapi.json",
+              "host": ["{{base_url}}"],
+              "path": ["openapi.json"]
+            },
+            "description": "OpenAPI specification in JSON format"
+          },
+          "response": []
+        }
+      ],
+      "description": "API documentation endpoints"
+    }
+  ]
+}

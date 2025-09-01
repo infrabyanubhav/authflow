@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuthFlow JavaScript Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .console-output {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 AuthFlow JavaScript Test Suite</h1>
+    <p>This page allows you to test the AuthFlow JavaScript module functionality.</p>
+
+    <!-- Test Controls -->
+    <div class="test-section">
+        <h2>🎮 Test Controls</h2>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="runPerformanceTests()">Performance Tests</button>
+        <button onclick="clearConsole()">Clear Console</button>
+        <button onclick="testEmailValidation()">Test Email Validation</button>
+        <button onclick="testFormValidation()">Test Form Validation</button>
+        <button onclick="testDeviceFingerprint()">Test Device Fingerprint</button>
+    </div>
+
+    <!-- Email Validation Test -->
+    <div class="test-section">
+        <h2>📧 Email Validation Test</h2>
+        <input type="email" id="testEmail" placeholder="Enter email to test" value="test@example.com">
+        <button onclick="validateTestEmail()">Validate Email</button>
+        <div id="emailResult"></div>
+    </div>
+
+    <!-- Form Validation Demo -->
+    <div class="test-section">
+        <h2>📝 Form Validation Demo</h2>
+        <form id="testForm">
+            <div>
+                <input type="email" id="demoEmail" placeholder="Email" required>
+                <input type="password" id="demoPassword" placeholder="Password" required>
+            </div>
+            <button type="button" onclick="validateTestForm()">Validate Form</button>
+            <button type="button" onclick="clearFormErrors()">Clear Errors</button>
+        </form>
+        <div id="formResult"></div>
+    </div>
+
+    <!-- UI Tests -->
+    <div class="test-section">
+        <h2>🎨 UI Interaction Tests</h2>
+        <button class="btn-github" onclick="testGitHubButton()">
+            <span>Test GitHub Button</span>
+            <div class="loading" style="display: none;">Loading...</div>
+        </button>
+        <button onclick="testSuccessAlert()">Test Success Alert</button>
+        <button onclick="testErrorAlert()">Test Error Alert</button>
+    </div>
+
+    <!-- Device Fingerprint Display -->
+    <div class="test-section">
+        <h2>🔍 Device Fingerprint</h2>
+        <button onclick="showDeviceFingerprint()">Generate Fingerprint</button>
+        <div id="fingerprintResult"></div>
+    </div>
+
+    <!-- Console Output -->
+    <div class="test-section">
+        <h2>📊 Console Output</h2>
+        <div id="consoleOutput" class="console-output">
+            Ready to run tests... Click any test button above.
+        </div>
+    </div>
+
+    <!-- Load the AuthFlow module -->
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/auth.test.js"></script>
+
+    <script>
+        // Redirect console.log to our custom output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = document.getElementById('consoleOutput');
+
+        function logToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : type === 'warn' ? '#ffd93d' : '#00ff00';
+            consoleOutput.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            logToConsole(args.join(' '), 'log');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            logToConsole(args.join(' '), 'error');
+        };
+
+        // Test functions
+        function runAllTests() {
+            clearConsole();
+            logToConsole('🚀 Starting comprehensive test suite...', 'log');
+            AuthFlowTests.runAllTests();
+        }
+
+        function runPerformanceTests() {
+            clearConsole();
+            logToConsole('⚡ Starting performance tests...', 'log');
+            PerformanceTests.testInitPerformance();
+            PerformanceTests.testValidationPerformance();
+        }
+
+        function clearConsole() {
+            consoleOutput.innerHTML = '';
+        }
+
+        function testEmailValidation() {
+            clearConsole();
+            AuthFlowTests.testEmailValidation();
+        }
+
+        function testFormValidation() {
+            clearConsole();
+            AuthFlowTests.testFormValidation();
+        }
+
+        function testDeviceFingerprint() {
+            clearConsole();
+            AuthFlowTests.testDeviceFingerprint();
+        }
+
+        function validateTestEmail() {
+            const email = document.getElementById('testEmail').value;
+            const result = document.getElementById('emailResult');
+            const isValid = window.authFlow.isValidEmail(email);
+            
+            result.innerHTML = `
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Valid:</strong> <span style="color: ${isValid ? 'green' : 'red'}">${isValid ? '✅ Yes' : '❌ No'}</span></p>
+            `;
+        }
+
+        function validateTestForm() {
+            const form = document.getElementById('testForm');
+            const result = document.getElementById('formResult');
+            const isValid = window.authFlow.validateForm(form);
+            
+            result.innerHTML = `
+                <p><strong>Form Valid:</strong> <span style="color: ${isValid ? 'green' : 'red'}">${isValid ? '✅ Yes' : '❌ No'}</span></p>
+            `;
+        }
+
+        function clearFormErrors() {
+            window.authFlow.clearErrors();
+            document.getElementById('formResult').innerHTML = '';
+        }
+
+        function testGitHubButton() {
+            const button = document.querySelector('.btn-github');
+            const span = button.querySelector('span');
+            const loading = button.querySelector('.loading');
+            
+            window.authFlow.showButtonLoading(button, span, loading);
+            
+            setTimeout(() => {
+                window.authFlow.resetButtonLoading(button, span, loading, 'Test GitHub Button');
+            }, 2000);
+        }
+
+        function testSuccessAlert() {
+            window.authFlow.showSuccess('This is a test success message!');
+        }
+
+        function testErrorAlert() {
+            window.authFlow.showError('This is a test error message!');
+        }
+
+        function showDeviceFingerprint() {
+            const result = document.getElementById('fingerprintResult');
+            const fingerprint = window.authFlow.getDeviceFingerprint();
+            
+            result.innerHTML = `
+                <h4>Device Fingerprint:</h4>
+                <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;">
+${JSON.stringify(fingerprint, null, 2)}
+                </pre>
+            `;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            logToConsole('✅ AuthFlow test page loaded successfully!', 'log');
+            logToConsole('🎯 Ready to run tests. Use the buttons above.', 'log');
+        });
+    </script>
+</body>
+</html>
